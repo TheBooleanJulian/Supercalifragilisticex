@@ -1,0 +1,4 @@
+{
+  "build": { "type": "python" },
+  "start": "python bot.py"
+}
