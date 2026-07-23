@@ -1,4 +1,4 @@
-# cal-bot
+# supercalifragilistic
 
 Telegram bot that extracts calendar events from photos and text, then creates them in Google Calendar after confirmation.
 
@@ -38,7 +38,7 @@ Send your bot a message: `"Team standup tomorrow 9am, boardroom"` or a photo of 
 ## Zeabur deployment
 
 ```bash
-git add . && git commit -m "feat: cal-bot" && git push
+git add . && git commit -m "feat: supercalifragilistic" && git push
 ```
 
 In the Zeabur dashboard → **Environment Variables**, add all keys from `.env.example`:
