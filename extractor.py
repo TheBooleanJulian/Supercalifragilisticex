@@ -70,7 +70,8 @@ def _gemini_client() -> genai.Client:
 
 
 def _gemini_text(text: str) -> list[dict]:
-    r = _gemini_client().models.generate_content(
+    client = _gemini_client()
+    r = client.models.generate_content(
         model=GEMINI_MODEL,
         contents=f"Today is {_today()}.\n\n{text}",
         config=_gemini_cfg(),
@@ -79,7 +80,8 @@ def _gemini_text(text: str) -> list[dict]:
 
 
 def _gemini_image(image_bytes: bytes, mime: str) -> list[dict]:
-    r = _gemini_client().models.generate_content(
+    client = _gemini_client()
+    r = client.models.generate_content(
         model=GEMINI_MODEL,
         contents=[
             types.Part.from_bytes(data=image_bytes, mime_type=mime),
@@ -93,7 +95,8 @@ def _gemini_image(image_bytes: bytes, mime: str) -> list[dict]:
 # ── Claude Haiku fallback ───────────────────────────────────────────────────────
 
 def _claude_text(text: str) -> list[dict]:
-    r = anthropic.Anthropic(timeout=15).messages.create(
+    client = anthropic.Anthropic(timeout=15)
+    r = client.messages.create(
         model=CLAUDE_MODEL,
         max_tokens=1024,
         system=SYSTEM,
@@ -104,7 +107,8 @@ def _claude_text(text: str) -> list[dict]:
 
 def _claude_image(image_bytes: bytes, mime: str) -> list[dict]:
     b64 = base64.standard_b64encode(image_bytes).decode()
-    r = anthropic.Anthropic(timeout=15).messages.create(
+    client = anthropic.Anthropic(timeout=15)
+    r = client.messages.create(
         model=CLAUDE_MODEL,
         max_tokens=1024,
         system=SYSTEM,
