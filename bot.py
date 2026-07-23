@@ -1,5 +1,6 @@
 import os
 import logging
+from datetime import datetime
 from uuid import uuid4
 from dotenv import load_dotenv
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
@@ -21,6 +22,41 @@ ALLOWED = set(int(x) for x in os.getenv("ALLOWED_USER_IDS", "").split(",") if x.
 
 def is_allowed(uid: int) -> bool:
     return not ALLOWED or uid in ALLOWED
+
+FIELDS = {
+    "title":       "Title",
+    "date":        "Date (YYYY-MM-DD)",
+    "start_time":  "Start time (HH:MM)",
+    "end_time":    "End time (HH:MM, or - to clear)",
+    "location":    "Location (or - to clear)",
+    "description": "Description (or - to clear)",
+}
+
+def event_keyboard(eid: str) -> InlineKeyboardMarkup:
+    return InlineKeyboardMarkup([
+        [
+            InlineKeyboardButton("✅ Add to Calendar", callback_data=f"ok:{eid}"),
+            InlineKeyboardButton("✏️ Edit",            callback_data=f"edit:{eid}"),
+        ],
+        [InlineKeyboardButton("❌ Skip", callback_data=f"skip:{eid}")],
+    ])
+
+def field_keyboard(eid: str, ev: dict) -> InlineKeyboardMarkup:
+    rows = [[InlineKeyboardButton("Title", callback_data=f"ef:{eid}:title")]]
+    if ev.get("is_all_day"):
+        rows.append([InlineKeyboardButton("Date", callback_data=f"ef:{eid}:date")])
+    else:
+        rows.append([
+            InlineKeyboardButton("Date",       callback_data=f"ef:{eid}:date"),
+            InlineKeyboardButton("Start time", callback_data=f"ef:{eid}:start_time"),
+        ])
+        rows.append([InlineKeyboardButton("End time", callback_data=f"ef:{eid}:end_time")])
+    rows.append([
+        InlineKeyboardButton("Location",    callback_data=f"ef:{eid}:location"),
+        InlineKeyboardButton("Description", callback_data=f"ef:{eid}:description"),
+    ])
+    rows.append([InlineKeyboardButton("« Back", callback_data=f"back:{eid}")])
+    return InlineKeyboardMarkup(rows)
 
 def format_event(e: dict) -> str:
     lines = [f"📅 *{e['title']}*"]
@@ -51,6 +87,9 @@ async def cmd_start(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
 
 async def on_text(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
     if not is_allowed(update.effective_user.id):
+        return
+    if ctx.user_data.get("editing"):
+        await _apply_edit(update, ctx)
         return
     msg = await update.message.reply_text("⏳ Extracting events…")
     try:
@@ -107,17 +146,93 @@ async def _present(update: Update, ctx: ContextTypes.DEFAULT_TYPE, events: list)
     for ev in events:
         eid = uuid4().hex[:8]
         pending[eid] = ev
-        kb = InlineKeyboardMarkup([[
-            InlineKeyboardButton("✅ Add to Calendar", callback_data=f"ok:{eid}"),
-            InlineKeyboardButton("❌ Skip",             callback_data=f"skip:{eid}"),
-        ]])
-        await update.message.reply_text(format_event(ev), parse_mode="Markdown", reply_markup=kb)
+        await update.message.reply_text(
+            format_event(ev), parse_mode="Markdown", reply_markup=event_keyboard(eid)
+        )
+
+async def _apply_edit(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
+    editing = ctx.user_data.pop("editing")
+    eid, field = editing["eid"], editing["field"]
+    ev = ctx.user_data.get("pending", {}).get(eid)
+    if ev is None:
+        await update.message.reply_text("This event is no longer pending.")
+        return
+
+    value = update.message.text.strip()
+    clear = field in ("end_time", "location", "description") and value in ("-", "none", "clear")
+
+    if field == "date":
+        try:
+            datetime.strptime(value, "%Y-%m-%d")
+        except ValueError:
+            ctx.user_data["editing"] = editing
+            await update.message.reply_text("❌ Invalid date, expected YYYY-MM-DD. Try again:")
+            return
+        ev["date"] = value
+    elif field in ("start_time", "end_time"):
+        if clear:
+            ev[field] = None
+        else:
+            try:
+                datetime.strptime(value, "%H:%M")
+            except ValueError:
+                ctx.user_data["editing"] = editing
+                await update.message.reply_text("❌ Invalid time, expected HH:MM. Try again:")
+                return
+            ev[field] = value
+    elif clear:
+        ev[field] = None
+    else:
+        ev[field] = value
+
+    await ctx.bot.edit_message_text(
+        chat_id=editing["chat_id"],
+        message_id=editing["message_id"],
+        text=format_event(ev),
+        parse_mode="Markdown",
+        reply_markup=event_keyboard(eid),
+    )
+    await update.message.delete()
 
 async def on_callback(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
     q = update.callback_query
     await q.answer()
-    action, eid = q.data.split(":", 1)
-    ev = ctx.user_data.get("pending", {}).pop(eid, None)
+    parts = q.data.split(":")
+    action, eid = parts[0], parts[1]
+    pending = ctx.user_data.setdefault("pending", {})
+
+    if action == "edit":
+        ev = pending.get(eid)
+        if ev is None:
+            await q.edit_message_reply_markup(reply_markup=None)
+            return
+        await q.edit_message_reply_markup(reply_markup=field_keyboard(eid, ev))
+        return
+
+    if action == "back":
+        ev = pending.get(eid)
+        if ev is None:
+            await q.edit_message_reply_markup(reply_markup=None)
+            return
+        await q.edit_message_text(
+            format_event(ev), parse_mode="Markdown", reply_markup=event_keyboard(eid)
+        )
+        return
+
+    if action == "ef":
+        field = parts[2]
+        ev = pending.get(eid)
+        if ev is None:
+            await q.edit_message_reply_markup(reply_markup=None)
+            return
+        ctx.user_data["editing"] = {
+            "eid": eid, "field": field,
+            "chat_id": q.message.chat_id, "message_id": q.message.message_id,
+        }
+        await q.edit_message_text(f"✏️ Send the new *{FIELDS[field]}*:", parse_mode="Markdown")
+        return
+
+    ev = pending.pop(eid, None)
     if ev is None:
         await q.edit_message_reply_markup(reply_markup=None)
         return
