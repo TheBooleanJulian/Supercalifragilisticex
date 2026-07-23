@@ -1,4 +1,4 @@
-# supercalifragilistic
+# Supercalifragilisticex
 
 Telegram bot that extracts calendar events from photos and text, then creates them in Google Calendar after confirmation.
 
