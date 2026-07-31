@@ -1,68 +1,112 @@
+<div align="center">
+
 # Supercalifragilisticex
 
-Telegram bot that extracts calendar events from photos and text, then creates them in Google Calendar after confirmation.
+**Telegram bot that extracts calendar events from photos and text, then creates them in Google Calendar after confirmation.**
 
-**Extraction:** Gemini 3.1 Flash-Lite (primary) → Claude Haiku 4.5 (fallback on rate limit / 5xx / timeout)
+![Version](https://img.shields.io/badge/version-0.2.0-00D4C8)
+![Python](https://img.shields.io/badge/-Python-3776AB?logo=python&logoColor=white)
+![Zeabur](https://img.shields.io/badge/-Zeabur-6C5CE7)
+![License](https://img.shields.io/badge/license-AGPLv3%20%7C%20Commercial-00D4C8.svg)
+
+</div>
 
 ---
 
-## Setup
+## What it does
 
-### 1. Telegram
-Talk to [@BotFather](https://t.me/BotFather) → `/newbot` → copy token into `.env`.
+Supercalifragilisticex is a personal Telegram bot that turns event descriptions — typed messages or photos of invites, flyers, and screenshots — into Google Calendar entries. It extracts event details using Gemini Flash-Lite as the primary model, falling back to Claude Haiku on rate limits or errors. Before anything is created, it shows you the extracted details and lets you edit them, so you stay in control.
 
-### 2. Google Cloud — Calendar API
-1. [console.cloud.google.com](https://console.cloud.google.com) → create project → enable **Google Calendar API**
-2. APIs & Services → Credentials → **Create OAuth 2.0 Client ID** (Desktop app)
-3. Download JSON → save as `credentials.json` in project root
+## Features
 
-### 3. Google AI Studio — Gemini key
-Get a free API key at [aistudio.google.com](https://aistudio.google.com). Free tier: 15 RPM / 1,500 RPD.
+- Extract calendar events from free-text messages or photos sent to the bot
+- Edit extracted event details before confirming creation
+- Creates events directly in Google Calendar via OAuth
+- Gemini 3.1 Flash-Lite as primary extractor, Claude Haiku 4.5 as automatic fallback
+- Restricted to allowlisted Telegram user IDs
 
-### 4. OAuth token (run once, locally)
+## Tech Stack
+
+| Layer | Choice |
+|---|---|
+| Bot | python-telegram-bot (polling) |
+| AI | Gemini 3.1 Flash-Lite (primary) + Claude Haiku 4.5 (fallback) |
+| Calendar | Google Calendar API (OAuth 2.0) |
+| Hosting | Zeabur |
+
+## Quick Start
+
 ```bash
+git clone <repo>
+cd Supercalifragilisticex
 pip install -r requirements.txt
 cp .env.example .env   # fill in your keys
-python auth_setup.py   # browser opens → approve → token.json written
-```
-
-### 5. Run locally
-```bash
+python auth_setup.py   # one-time local OAuth flow — browser opens, token.json written
 python bot.py
 ```
 
-Send your bot a message: `"Team standup tomorrow 9am, boardroom"` or a photo of an event invite.
+Send your bot a message like `"Team standup tomorrow 9am, boardroom"` or a photo of an event invite.
 
----
+## Configuration
 
-## Zeabur deployment
+| Variable | Required | Description |
+|---|---|---|
+| `TELEGRAM_BOT_TOKEN` | ✅ | From [@BotFather](https://t.me/BotFather) |
+| `ALLOWED_USER_IDS` | ✅ | Comma-separated Telegram user IDs to allowlist |
+| `GEMINI_API_KEY` | ✅ | From [aistudio.google.com](https://aistudio.google.com) |
+| `ANTHROPIC_API_KEY` | ✅ | From console.anthropic.com (fallback model) |
+| `GOOGLE_TOKEN_JSON` | ✅ | One-liner JSON printed by `auth_setup.py` — used in Zeabur instead of `token.json` |
 
-```bash
-git add . && git commit -m "feat: supercalifragilistic" && git push
+`token.json` and `credentials.json` are local-only — never commit them.
+
+## Project Structure
+
+```
+Supercalifragilisticex/
+|-- bot.py           # Telegram handlers + entry point
+|-- extractor.py     # Gemini extraction, Claude fallback
+|-- gcal.py          # Google Calendar client
+|-- auth_setup.py    # One-time local OAuth flow
+|-- requirements.txt
+|-- zbpack.json      # Zeabur build config
+`-- .env.example
 ```
 
-In the Zeabur dashboard → **Environment Variables**, add all keys from `.env.example`:
+## Deployment
 
-| Variable | Value |
-|---|---|
-| `TELEGRAM_BOT_TOKEN` | from BotFather |
-| `ALLOWED_USER_IDS` | your Telegram ID |
-| `ANTHROPIC_API_KEY` | from console.anthropic.com |
-| `GEMINI_API_KEY` | from aistudio.google.com |
-| `GOOGLE_TOKEN_JSON` | one-liner JSON printed by `auth_setup.py` |
+Deployed on Zeabur. Push to master triggers a deploy via `zbpack.json`.
 
-`token.json` and `credentials.json` stay local — never commit them.
+In the Zeabur dashboard → **Environment Variables**, add all keys from `.env.example`. The `GOOGLE_TOKEN_JSON` variable replaces the local `token.json` file — copy the one-liner JSON printed by `auth_setup.py`.
+
+## Status / Roadmap
+
+**Done**
+
+- [x] Event extraction from text and images
+- [x] Pre-creation edit flow so users can correct extracted details
+- [x] Gemini primary + Claude fallback extraction pipeline
+- [x] Google Calendar creation via OAuth
+- [x] User allowlist via `ALLOWED_USER_IDS`
+- [x] Zeabur deployment with correct start command
+
+**Planned / Suggestions**
+
+- No test files found — basic unit tests for `extractor.py` and `gcal.py` would help catch regressions
+
+## Changelog
+
+- **2026-07-23** — Added pre-confirmation edit flow so extracted event details can be corrected before calendar creation; fixed premature httpx client close; corrected Zeabur start command in `zbpack.json`
+- **2026-06-30** — Initial release: Telegram bot extracting events from text and images, creating them in Google Calendar with Gemini/Claude extraction
+
+## License
+
+This project is dual licensed.
+
+- Community Edition — [GNU Affero General Public License v3 (AGPLv3)](LICENSE). Free to use, modify, and self-host. If you distribute a modified version or run it as a network service, you must make the corresponding source available.
+- Commercial License — for organisations that want to embed, modify, or distribute this software without AGPLv3's obligations. See [COMMERCIAL-LICENSE.md](COMMERCIAL-LICENSE.md).
 
 ---
 
-## Files
-
-| File | Purpose |
-|---|---|
-| `bot.py` | Telegram handlers + entry point |
-| `extractor.py` | Claude Haiku extraction, Gemini fallback |
-| `gcal.py` | Google Calendar client |
-| `auth_setup.py` | One-time local OAuth flow |
-| `requirements.txt` | Python dependencies |
-| `zbpack.json` | Zeabur build config |
-| `.env.example` | Environment variable template |
+<div align="center">
+<sub>Built by <a href="https://github.com/TheBooleanJulian">@TheBooleanJulian</a></sub>
+</div>
