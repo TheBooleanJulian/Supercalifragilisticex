@@ -4,7 +4,7 @@
 
 **Telegram bot that extracts calendar events from photos and text, then creates them in Google Calendar after confirmation.**
 
-![Version](https://img.shields.io/badge/version-0.2.0-00D4C8)
+![Version](https://img.shields.io/badge/version-0.2.1-00D4C8)
 ![Python](https://img.shields.io/badge/-Python-3776AB?logo=python&logoColor=white)
 ![Zeabur](https://img.shields.io/badge/-Zeabur-6C5CE7)
 ![License](https://img.shields.io/badge/license-AGPLv3%20%7C%20Commercial-00D4C8.svg)
@@ -95,8 +95,15 @@ In the Zeabur dashboard → **Environment Variables**, add all keys from `.env.e
 
 ## Changelog
 
-- **2026-07-23** — Added pre-confirmation edit flow so extracted event details can be corrected before calendar creation; fixed premature httpx client close; corrected Zeabur start command in `zbpack.json`
-- **2026-06-30** — Initial release: Telegram bot extracting events from text and images, creating them in Google Calendar with Gemini/Claude extraction
+Versioned with `MAJOR.MINOR.PATCH`: `feat` commits bump **minor**, `fix`/`docs`/`chore` bump **patch**, breaking changes bump **major**.
+
+- **v0.2.1** — 2026-08-01 — Dual licensed under AGPLv3 + commercial license; added `LICENSE` and `COMMERCIAL-LICENSE.md`; restructured README
+- **v0.2.0** — 2026-07-24 — Added pre-confirmation edit flow so extracted event details can be corrected before calendar creation
+- **v0.1.4** — 2026-07-24 — Fixed premature httpx client close by holding a client reference
+- **v0.1.3** — 2026-07-23 — Corrected Zeabur start command in `zbpack.json`
+- **v0.1.2** — 2026-07-23 — Renamed project to Supercalifragilisticex
+- **v0.1.1** — 2026-07-23 — Renamed project from cal-bot to supercalifragilistic
+- **v0.1.0** — 2026-07-01 — Initial release: Telegram bot extracting events from text and images, creating them in Google Calendar with Gemini/Claude extraction
 
 ## License
 
