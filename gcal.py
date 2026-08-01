@@ -1,5 +1,7 @@
 import os
 import json
+from datetime import datetime, timedelta
+import pytz
 from google.auth.transport.requests import Request
 from google.oauth2.credentials import Credentials
 from google_auth_oauthlib.flow import InstalledAppFlow
@@ -66,3 +68,34 @@ def create_event(event: dict) -> str:
 
     result = svc.events().insert(calendarId="primary", body=body).execute()
     return result.get("htmlLink", "")
+
+
+def list_events_today() -> list[dict]:
+    """Return today's events on the primary calendar, sorted by start time."""
+    tz = pytz.timezone(TIMEZONE)
+    now = datetime.now(tz)
+    start_of_day = tz.localize(datetime(now.year, now.month, now.day))
+    end_of_day = start_of_day + timedelta(days=1)
+
+    svc = build("calendar", "v3", credentials=_get_creds())
+    result = svc.events().list(
+        calendarId="primary",
+        timeMin=start_of_day.isoformat(),
+        timeMax=end_of_day.isoformat(),
+        singleEvents=True,
+        orderBy="startTime",
+    ).execute()
+
+    events = []
+    for item in result.get("items", []):
+        start = item["start"].get("dateTime", item["start"].get("date"))
+        end = item["end"].get("dateTime", item["end"].get("date"))
+        events.append({
+            "title":      item.get("summary", "(no title)"),
+            "start":      start,
+            "end":        end,
+            "is_all_day": "date" in item["start"],
+            "location":   item.get("location"),
+            "htmlLink":   item.get("htmlLink"),
+        })
+    return events

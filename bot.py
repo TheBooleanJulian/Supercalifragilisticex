@@ -1,6 +1,7 @@
 import os
 import logging
-from datetime import datetime
+from datetime import datetime, time
+import pytz
 from uuid import uuid4
 from dotenv import load_dotenv
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
@@ -9,7 +10,7 @@ from telegram.ext import (
     CallbackQueryHandler, ContextTypes, filters,
 )
 from extractor import extract_from_text, extract_from_image
-from gcal import create_event
+from gcal import create_event, list_events_today, TIMEZONE
 
 load_dotenv()
 logging.basicConfig(format="%(asctime)s %(levelname)s %(message)s", level=logging.INFO)
@@ -19,6 +20,12 @@ BOT_TOKEN = os.environ["TELEGRAM_BOT_TOKEN"]
 
 # Comma-separated Telegram user IDs allowed to use the bot. Leave empty = allow all.
 ALLOWED = set(int(x) for x in os.getenv("ALLOWED_USER_IDS", "").split(",") if x.strip())
+
+# Who receives the daily morning brief DM. Defaults to the first allowlisted user.
+_brief_chat_env = os.getenv("MORNING_BRIEF_CHAT_ID", "").strip()
+MORNING_BRIEF_CHAT_ID = int(_brief_chat_env) if _brief_chat_env else (next(iter(ALLOWED), None))
+MORNING_BRIEF_HOUR = int(os.getenv("MORNING_BRIEF_HOUR", "7"))
+MORNING_BRIEF_MINUTE = int(os.getenv("MORNING_BRIEF_MINUTE", "0"))
 
 def is_allowed(uid: int) -> bool:
     return not ALLOWED or uid in ALLOWED
@@ -73,7 +80,48 @@ def format_event(e: dict) -> str:
         lines.append(f"📝 {e['description'][:100]}")
     return "\n".join(lines)
 
+def format_brief(events: list) -> str:
+    now = datetime.now(pytz.timezone(TIMEZONE))
+    today = f"{now:%A}, {now.day} {now:%B %Y}"
+    if not events:
+        return f"☀️ *Good morning!*\n{today}\n\nNothing on your calendar today. 🎉"
+
+    lines = [f"☀️ *Good morning!*\n{today}\n", f"You have *{len(events)}* event(s) today:\n"]
+    for e in events:
+        if e["is_all_day"]:
+            lines.append(f"🗓 *{e['title']}* (all day)")
+        else:
+            t = datetime.fromisoformat(e["start"]).strftime("%H:%M")
+            lines.append(f"🕐 *{t}* — {e['title']}")
+        if e.get("location"):
+            lines.append(f"    📍 {e['location']}")
+    return "\n".join(lines)
+
+async def send_morning_brief(ctx: ContextTypes.DEFAULT_TYPE):
+    if not MORNING_BRIEF_CHAT_ID:
+        log.warning("No MORNING_BRIEF_CHAT_ID / ALLOWED_USER_IDS configured, skipping brief")
+        return
+    try:
+        events = list_events_today()
+        await ctx.bot.send_message(
+            chat_id=MORNING_BRIEF_CHAT_ID,
+            text=format_brief(events),
+            parse_mode="Markdown",
+        )
+    except Exception:
+        log.exception("Failed to send morning brief")
+
 # ── Handlers ──────────────────────────────────────────────────────────────────
+
+async def cmd_today(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
+    if not is_allowed(update.effective_user.id):
+        return
+    try:
+        events = list_events_today()
+        await update.message.reply_text(format_brief(events), parse_mode="Markdown")
+    except Exception as exc:
+        log.exception("Failed to fetch today's events")
+        await update.message.reply_text(f"❌ {exc}")
 
 async def cmd_start(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text(
@@ -81,7 +129,8 @@ async def cmd_start(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
         "Send me:\n"
         "• A photo of an invite, flyer, or schedule\n"
         "• Text describing events\n\n"
-        "I'll extract the entries and confirm before adding them to Google Calendar.",
+        "I'll extract the entries and confirm before adding them to Google Calendar.\n\n"
+        "Use /today for your schedule right now — I'll also DM you a morning brief automatically.",
         parse_mode="Markdown",
     )
 
@@ -254,10 +303,25 @@ async def on_callback(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
 def main():
     app = Application.builder().token(BOT_TOKEN).build()
     app.add_handler(CommandHandler("start", cmd_start))
+    app.add_handler(CommandHandler("today", cmd_today))
     app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, on_text))
     app.add_handler(MessageHandler(filters.PHOTO, on_photo))
     app.add_handler(MessageHandler(filters.Document.IMAGE, on_document))
     app.add_handler(CallbackQueryHandler(on_callback))
+
+    if MORNING_BRIEF_CHAT_ID:
+        app.job_queue.run_daily(
+            send_morning_brief,
+            time=time(MORNING_BRIEF_HOUR, MORNING_BRIEF_MINUTE, tzinfo=pytz.timezone(TIMEZONE)),
+            name="morning_brief",
+        )
+        log.info(
+            "Morning brief scheduled for %02d:%02d %s -> chat %s",
+            MORNING_BRIEF_HOUR, MORNING_BRIEF_MINUTE, TIMEZONE, MORNING_BRIEF_CHAT_ID,
+        )
+    else:
+        log.warning("No chat configured for morning brief (set ALLOWED_USER_IDS or MORNING_BRIEF_CHAT_ID)")
+
     log.info("Polling…")
     app.run_polling(drop_pending_updates=True)
 
