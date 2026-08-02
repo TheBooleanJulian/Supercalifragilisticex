@@ -11,6 +11,7 @@ from telegram.ext import (
 )
 from extractor import extract_from_text, extract_from_image
 from gcal import create_event, list_events_today, TIMEZONE
+from landing import start_landing_server
 
 load_dotenv()
 logging.basicConfig(format="%(asctime)s %(levelname)s %(message)s", level=logging.INFO)
@@ -301,6 +302,7 @@ async def on_callback(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
 # ── Entry point ───────────────────────────────────────────────────────────────
 
 def main():
+    start_landing_server()
     app = Application.builder().token(BOT_TOKEN).build()
     app.add_handler(CommandHandler("start", cmd_start))
     app.add_handler(CommandHandler("today", cmd_today))
