@@ -4,7 +4,7 @@
 
 **Telegram bot that extracts calendar events from photos and text, creates them in Google Calendar after confirmation, and DMs a daily morning brief.**
 
-![Version](https://img.shields.io/badge/version-0.4.0-00D4C8)
+![Version](https://img.shields.io/badge/version-0.4.1-00D4C8)
 ![Python](https://img.shields.io/badge/-Python-3776AB?logo=python&logoColor=white)
 ![Zeabur](https://img.shields.io/badge/-Zeabur-6C5CE7)
 ![License](https://img.shields.io/badge/license-AGPLv3%20%7C%20Commercial-00D4C8.svg)
@@ -16,6 +16,8 @@
 ## What it does
 
 Supercalifragilisticex is a personal Telegram bot that turns event descriptions — typed messages or photos of invites, flyers, and screenshots — into Google Calendar entries. It extracts event details using Gemini Flash-Lite as the primary model, falling back to Claude Haiku on rate limits or errors. Before anything is created, it shows you the extracted details and lets you edit them, so you stay in control.
+
+It's single-tenant by design: each deployment is wired to **one** Google Calendar and **one** allowlist of Telegram user IDs. To use it, self-host your own copy (see below) — there's no shared multi-user instance.
 
 ## Features
 
@@ -36,18 +38,26 @@ Supercalifragilisticex is a personal Telegram bot that turns event descriptions 
 | Calendar | Google Calendar API (OAuth 2.0) |
 | Hosting | Zeabur |
 
-## Quick Start
+## Self-Hosting
 
-```bash
-git clone <repo>
-cd Supercalifragilisticex
-pip install -r requirements.txt
-cp .env.example .env   # fill in your keys
-python auth_setup.py   # one-time local OAuth flow — browser opens, token.json written
-python bot.py
-```
+1. **Create a Telegram bot** — message [@BotFather](https://t.me/BotFather), run `/newbot`, save the token.
+2. **Get a Gemini API key** — [aistudio.google.com](https://aistudio.google.com), free tier is enough.
+3. **Get an Anthropic API key** — [console.anthropic.com](https://console.anthropic.com) (used as the fallback extractor).
+4. **Set up Google Calendar OAuth**:
+   - In [Google Cloud Console](https://console.cloud.google.com), create a project and enable the **Google Calendar API**.
+   - Configure the OAuth consent screen (External, Testing mode is fine for personal use — add your own Google account as a test user).
+   - Create an **OAuth client ID** of type **Desktop app**, download the JSON, save it as `credentials.json` in the repo root.
+5. **Clone and configure**:
+   ```bash
+   git clone https://github.com/TheBooleanJulian/Supercalifragilisticex.git
+   cd Supercalifragilisticex
+   pip install -r requirements.txt
+   cp .env.example .env   # fill in your keys and your Telegram user ID
+   python auth_setup.py   # one-time local OAuth flow — browser opens, token.json written
+   python bot.py
+   ```
 
-Send your bot a message like `"Team standup tomorrow 9am, boardroom"` or a photo of an event invite.
+Send your bot a message like `"Team standup tomorrow 9am, boardroom"` or a photo of an event invite. Only Telegram user IDs listed in `ALLOWED_USER_IDS` can use it.
 
 ## Configuration
 
@@ -102,11 +112,13 @@ In the Zeabur dashboard → **Environment Variables**, add all keys from `.env.e
 **Planned / Suggestions**
 
 - No test files found — basic unit tests for `extractor.py` and `gcal.py` would help catch regressions
+- Multi-tenant SaaS mode (per-user Google OAuth, hosted token storage, one shared bot) — parked until the self-hosted single-tenant model has had a security review, since it multiplies the blast radius of a credential-handling bug across other people's calendars
 
 ## Changelog
 
 Versioned with `MAJOR.MINOR.PATCH`: `feat` commits bump **minor**, `fix`/`docs`/`chore` bump **patch**, breaking changes bump **major**.
 
+- **v0.4.1** — 2026-08-02 — Documented full self-hosting walkthrough (Google Cloud OAuth setup, BotFather, API keys) and roadmapped a future multi-tenant SaaS mode
 - **v0.4.0** — 2026-08-02 — Added a static landing page served over HTTP so the custom domain resolves to something
 - **v0.3.0** — 2026-08-02 — Added `/today` command and a scheduled daily morning brief DM of today's calendar events
 - **v0.2.1** — 2026-08-01 — Dual licensed under AGPLv3 + commercial license; added `LICENSE` and `COMMERCIAL-LICENSE.md`; restructured README
