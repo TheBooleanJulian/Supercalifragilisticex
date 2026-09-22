@@ -2,12 +2,11 @@
 
 # Supercalifragilisticex
 
-**Telegram bot that extracts calendar events from photos and text, creates them in Google Calendar after confirmation, and DMs a daily morning brief.**
+**A Telegram bot + FastAPI backend that turns a photo or message into a Google Calendar event — the foundation for Accurova Calendar, a photography business operations system.**
 
-![Version](https://img.shields.io/badge/version-0.4.1-00D4C8)
 ![Python](https://img.shields.io/badge/-Python-3776AB?logo=python&logoColor=white)
-![Zeabur](https://img.shields.io/badge/-Zeabur-6C5CE7)
-![License](https://img.shields.io/badge/license-AGPLv3%20%7C%20Commercial-00D4C8.svg)
+![FastAPI](https://img.shields.io/badge/-FastAPI-009688?logo=fastapi&logoColor=white)
+![License](https://img.shields.io/badge/license-AGPLv3%20%2B%20Commercial-00D4C8.svg)
 
 </div>
 
@@ -15,119 +14,80 @@
 
 ## What it does
 
-Supercalifragilisticex is a personal Telegram bot that turns event descriptions — typed messages or photos of invites, flyers, and screenshots — into Google Calendar entries. It extracts event details using Gemini Flash-Lite as the primary model, falling back to Claude Haiku on rate limits or errors. Before anything is created, it shows you the extracted details and lets you edit them, so you stay in control.
+Supercalifragilisticex started as a Telegram bot that extracts booking details (client, date, time, location) from a text message or a photo of a booking form, using Gemini with a Claude fallback, and creates the corresponding Google Calendar event. It's now being extended into **Accurova Calendar**: a FastAPI backend with its own PostgreSQL database sits behind the same extraction pipeline, with Google Calendar kept as the source of truth for the events themselves (the database stores metadata — clients, workflow, payment status — not duplicate event data).
 
-It's single-tenant by design: each deployment is wired to **one** Google Calendar and **one** allowlist of Telegram user IDs. To use it, self-host your own copy (see below) — there's no shared multi-user instance.
+The Telegram bot is being incrementally refactored to call the new backend's HTTP API instead of extracting/writing to Calendar directly, so future interfaces (a web calendar UI, public booking pages) can share the exact same extraction and calendar logic.
 
 ## Features
 
-- Extract calendar events from free-text messages or photos sent to the bot
-- Edit extracted event details before confirming creation
-- Creates events directly in Google Calendar via OAuth
-- Gemini 3.1 Flash-Lite as primary extractor, Claude Haiku 4.5 as automatic fallback
-- Restricted to allowlisted Telegram user IDs
-- `/today` command and an automatic daily morning brief DM of today's calendar events
-- Static landing page served over HTTP for the custom domain
+- Text and photo-based event extraction via Gemini (primary) with a Claude fallback
+- Google Calendar integration: sync, read, and write events
+- `/today` command and an automated daily morning brief of the day's calendar events, DMed at a configurable time
+- Per-user access control via `ALLOWED_USER_IDS`
+- FastAPI backend (`backend/`) with PostgreSQL storage, SQLAlchemy models, and Alembic migrations
+- Full CRUD API for events and clients, plus an availability engine for computing open booking slots
+- Landing page served over HTTP for the bot's custom domain (`landing.py`)
 
 ## Tech Stack
 
 | Layer | Choice |
 |---|---|
-| Bot | python-telegram-bot (polling) |
-| AI | Gemini 3.1 Flash-Lite (primary) + Claude Haiku 4.5 (fallback) |
-| Calendar | Google Calendar API (OAuth 2.0) |
-| Hosting | Zeabur |
+| Language | Python |
+| Bot framework | python-telegram-bot |
+| Backend API | FastAPI + Uvicorn |
+| Database | PostgreSQL (SQLAlchemy ORM, Alembic migrations) |
+| Extraction | Google Gemini (`google-genai`) with Anthropic Claude fallback |
+| Calendar | Google Calendar API (OAuth via `google-auth-oauthlib`) |
+| Deployment | Zeabur (`zbpack.json`) |
 
-## Self-Hosting
+## Screenshots
 
-1. **Create a Telegram bot** — message [@BotFather](https://t.me/BotFather), run `/newbot`, save the token.
-2. **Get a Gemini API key** — [aistudio.google.com](https://aistudio.google.com), free tier is enough.
-3. **Get an Anthropic API key** — [console.anthropic.com](https://console.anthropic.com) (used as the fallback extractor).
-4. **Set up Google Calendar OAuth**:
-   - In [Google Cloud Console](https://console.cloud.google.com), create a project and enable the **Google Calendar API**.
-   - Configure the OAuth consent screen (External, Testing mode is fine for personal use — add your own Google account as a test user).
-   - Create an **OAuth client ID** of type **Desktop app**, download the JSON, save it as `credentials.json` in the repo root.
-5. **Clone and configure**:
-   ```bash
-   git clone https://github.com/TheBooleanJulian/Supercalifragilisticex.git
-   cd Supercalifragilisticex
-   pip install -r requirements.txt
-   cp .env.example .env   # fill in your keys and your Telegram user ID
-   python auth_setup.py   # one-time local OAuth flow — browser opens, token.json written
-   python bot.py
-   ```
+_Screenshots coming soon._
 
-Send your bot a message like `"Team standup tomorrow 9am, boardroom"` or a photo of an event invite. Only Telegram user IDs listed in `ALLOWED_USER_IDS` can use it.
+## Setup / Quick Start
 
-## Configuration
+### Telegram bot (root)
 
-| Variable | Required | Description |
-|---|---|---|
-| `TELEGRAM_BOT_TOKEN` | ✅ | From [@BotFather](https://t.me/BotFather) |
-| `ALLOWED_USER_IDS` | ✅ | Comma-separated Telegram user IDs to allowlist |
-| `GEMINI_API_KEY` | ✅ | From [aistudio.google.com](https://aistudio.google.com) |
-| `ANTHROPIC_API_KEY` | ✅ | From console.anthropic.com (fallback model) |
-| `GOOGLE_TOKEN_JSON` | ✅ | One-liner JSON printed by `auth_setup.py` — used in Zeabur instead of `token.json` |
-| `MORNING_BRIEF_CHAT_ID` | | Chat to DM the morning brief to. Defaults to the first ID in `ALLOWED_USER_IDS` |
-| `MORNING_BRIEF_HOUR` | | Hour (24h, `Asia/Singapore`) to send the brief. Defaults to `7` |
-| `MORNING_BRIEF_MINUTE` | | Minute to send the brief. Defaults to `0` |
-
-`token.json` and `credentials.json` are local-only — never commit them.
-
-## Project Structure
-
-```
-Supercalifragilisticex/
-|-- bot.py           # Telegram handlers + entry point
-|-- extractor.py     # Gemini extraction, Claude fallback
-|-- gcal.py          # Google Calendar client
-|-- landing.py       # Static landing page HTTP server (for the custom domain)
-|-- static/
-|   `-- index.html
-|-- auth_setup.py    # One-time local OAuth flow
-|-- requirements.txt
-|-- zbpack.json      # Zeabur build config
-`-- .env.example
+```bash
+python -m venv venv
+source venv/bin/activate
+pip install -r requirements.txt
+cp .env.example .env   # fill in TELEGRAM_BOT_TOKEN, GEMINI_API_KEY, ANTHROPIC_API_KEY, etc.
+python auth_setup.py   # one-time Google Calendar OAuth, writes token.json
+python bot.py
 ```
 
-## Deployment
+### Backend (FastAPI + PostgreSQL)
 
-Deployed on Zeabur. Push to master triggers a deploy via `zbpack.json`.
+```bash
+cd backend
+pip install -r requirements.txt
+cp .env.example .env   # database URL, API keys
+# initialize the database (see backend/README.md for full steps)
+python main.py         # serves on http://localhost:8000, docs at /docs
+```
 
-In the Zeabur dashboard → **Environment Variables**, add all keys from `.env.example`. The `GOOGLE_TOKEN_JSON` variable replaces the local `token.json` file — copy the one-liner JSON printed by `auth_setup.py`.
+See `backend/README.md` for the full API reference and setup walkthrough, and `DO-THIS-NEXT.md` for the step-by-step plan to wire the bot to the new backend.
 
 ## Status / Roadmap
 
-**Done**
-
-- [x] Event extraction from text and images
-- [x] Pre-creation edit flow so users can correct extracted details
-- [x] Gemini primary + Claude fallback extraction pipeline
-- [x] Google Calendar creation via OAuth
-- [x] User allowlist via `ALLOWED_USER_IDS`
-- [x] Zeabur deployment with correct start command
-- [x] `/today` command and scheduled daily morning brief DM
-- [x] Landing page served at the custom domain
-
-**Planned / Suggestions**
-
-- No test files found — basic unit tests for `extractor.py` and `gcal.py` would help catch regressions
-- Multi-tenant SaaS mode (per-user Google OAuth, hosted token storage, one shared bot) — parked until the self-hosted single-tenant model has had a security review, since it multiplies the blast radius of a credential-handling bug across other people's calendars
+- [x] Text/image event extraction (Gemini + Claude fallback)
+- [x] Event creation and sync with Google Calendar
+- [x] `/today` command and automated morning brief
+- [x] FastAPI backend with PostgreSQL, full CRUD APIs, and an availability engine
+- [x] Landing page served over HTTP for the custom domain
+- [ ] Refactor the Telegram bot to call the backend API instead of extracting/writing directly
+- [ ] Web calendar UI (month/week/day views)
+- [ ] Public, Calendly-style booking pages
+- [ ] Workflow tracking (lead → quote → booked → shoot → editing → delivered) and payment status
 
 ## Changelog
 
-Versioned with `MAJOR.MINOR.PATCH`: `feat` commits bump **minor**, `fix`/`docs`/`chore` bump **patch**, breaking changes bump **major**.
-
-- **v0.4.1** — 2026-08-02 — Documented full self-hosting walkthrough (Google Cloud OAuth setup, BotFather, API keys) and roadmapped a future multi-tenant SaaS mode
-- **v0.4.0** — 2026-08-02 — Added a static landing page served over HTTP so the custom domain resolves to something
-- **v0.3.0** — 2026-08-02 — Added `/today` command and a scheduled daily morning brief DM of today's calendar events
-- **v0.2.1** — 2026-08-01 — Dual licensed under AGPLv3 + commercial license; added `LICENSE` and `COMMERCIAL-LICENSE.md`; restructured README
-- **v0.2.0** — 2026-07-24 — Added pre-confirmation edit flow so extracted event details can be corrected before calendar creation
-- **v0.1.4** — 2026-07-24 — Fixed premature httpx client close by holding a client reference
-- **v0.1.3** — 2026-07-23 — Corrected Zeabur start command in `zbpack.json`
-- **v0.1.2** — 2026-07-23 — Renamed project to Supercalifragilisticex
-- **v0.1.1** — 2026-07-23 — Renamed project from cal-bot to supercalifragilistic
-- **v0.1.0** — 2026-07-01 — Initial release: Telegram bot extracting events from text and images, creating them in Google Calendar with Gemini/Claude extraction
+- **2026-09-14** — Add FastAPI backend (PostgreSQL, Alembic migrations, availability engine, full CRUD APIs) and a Telegram-bot-refactor guide as the foundation for Accurova Calendar.
+- **v0.3.0** — Document self-hosting setup and a multi-tenant SaaS mode on the roadmap.
+- **v0.3.0** — Add a daily morning brief of the day's calendar events.
+- **v0.3.0** — Dual license under AGPLv3/commercial and restructure the README.
+- Earlier — Allow editing extracted event details before confirming; serve a landing page over HTTP for the custom domain; initial extraction + Google Calendar bot.
 
 ## License
 
