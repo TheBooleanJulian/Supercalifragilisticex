@@ -1,0 +1,152 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Supercalifragilisticex</title>
+<style>
+  :root {
+    --bg: #0b0f10;
+    --panel: #12181a;
+    --text: #e8f0ef;
+    --muted: #93a3a1;
+    --accent: #00D4C8;
+    --border: #1f2a2c;
+  }
+  @media (prefers-color-scheme: light) {
+    :root {
+      --bg: #f7fafa;
+      --panel: #ffffff;
+      --text: #10201f;
+      --muted: #52625f;
+      --accent: #00a89e;
+      --border: #dfe8e7;
+    }
+  }
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0;
+    padding: 0;
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  }
+  body {
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 32px 16px;
+  }
+  main {
+    width: 100%;
+    max-width: 620px;
+  }
+  .card {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 40px;
+  }
+  .badge {
+    display: inline-block;
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: var(--accent);
+    border: 1px solid var(--accent);
+    border-radius: 999px;
+    padding: 4px 12px;
+    margin-bottom: 20px;
+  }
+  h1 {
+    font-size: 32px;
+    line-height: 1.2;
+    margin: 0 0 8px;
+  }
+  .tagline {
+    color: var(--muted);
+    font-size: 16px;
+    line-height: 1.5;
+    margin: 0 0 28px;
+  }
+  ul.features {
+    list-style: none;
+    margin: 0 0 32px;
+    padding: 0;
+    display: grid;
+    gap: 10px;
+  }
+  ul.features li {
+    display: flex;
+    gap: 10px;
+    font-size: 15px;
+    color: var(--text);
+  }
+  ul.features li span.icon {
+    flex-shrink: 0;
+  }
+  .actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 11px 20px;
+    border-radius: 10px;
+    font-size: 14px;
+    font-weight: 600;
+    text-decoration: none;
+    border: 1px solid var(--border);
+    color: var(--text);
+    transition: border-color 0.15s ease, transform 0.15s ease;
+  }
+  .btn:hover { transform: translateY(-1px); }
+  .btn.primary {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: #05201d;
+  }
+  .btn.secondary:hover { border-color: var(--accent); }
+  .note {
+    margin-top: 28px;
+    font-size: 13px;
+    color: var(--muted);
+  }
+  footer {
+    text-align: center;
+    margin-top: 24px;
+    font-size: 13px;
+    color: var(--muted);
+  }
+  footer a { color: var(--muted); }
+</style>
+</head>
+<body>
+<main>
+  <div class="card">
+    <span class="badge">Private Telegram Bot</span>
+    <h1>Supercalifragilisticex</h1>
+    <p class="tagline">
+      Turns a text message or a photo of an invite, flyer, or screenshot into a
+      Google Calendar event — and DMs a morning brief of today's schedule.
+    </p>
+    <ul class="features">
+      <li><span class="icon">📸</span> Extracts events from photos and free text (Gemini Flash-Lite, with Claude Haiku fallback)</li>
+      <li><span class="icon">✏️</span> Shows extracted details and lets you edit before anything is created</li>
+      <li><span class="icon">📅</span> Creates events directly in Google Calendar via OAuth</li>
+      <li><span class="icon">☀️</span> Sends a daily morning brief of the day's events, and answers <code>/today</code> on demand</li>
+    </ul>
+    <div class="actions">
+      <a class="btn secondary" href="https://github.com/TheBooleanJulian/Supercalifragilisticex">View on GitHub</a>
+    </div>
+    <p class="note">This bot is restricted to an allowlist of Telegram user IDs — it isn't open for public sign-up.</p>
+  </div>
+  <footer>Built by <a href="https://github.com/TheBooleanJulian">@TheBooleanJulian</a></footer>
+</main>
+</body>
+</html>
