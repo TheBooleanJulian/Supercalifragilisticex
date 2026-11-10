@@ -1,0 +1,16 @@
+{
+  "name": "supercalifragilisticex",
+  "version": "2.0.0",
+  "private": true,
+  "description": "Telegram bot: photo or text of an invite -> confirm -> Google Calendar. Cloudflare Worker.",
+  "type": "module",
+  "main": "worker.js",
+  "scripts": {
+    "test": "node --test",
+    "deploy": "npx wrangler deploy"
+  },
+  "dependencies": {
+    "thebooleanjulian-bot-core": "github:TheBooleanJulian/thebooleanjulian-bot-core#main"
+  },
+  "license": "SEE LICENSE IN LICENSE"
+}

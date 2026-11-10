@@ -101,3 +101,22 @@ This project is dual licensed.
 <div align="center">
 <sub>Built by <a href="https://github.com/TheBooleanJulian">@TheBooleanJulian</a></sub>
 </div>
+
+## Cloudflare Worker edition (2.0.0)
+
+`worker.js` replaces `bot.py` (Python, polling, Zeabur). Webhook + one daily Cron Trigger (07:00 SGT morning brief),
+Google Calendar over REST, model calls through `thebooleanjulian-llm` (use cases `event-extract` and
+`event-extract-vision`; no provider keys in this repo any more), pending events in Supabase schema `supercal`.
+`npm test` runs the unit and webhook-flow tests. The Python files stay until the cutover is confirmed, for rollback.
+
+Secrets (`wrangler secret put`, or `push_secrets.py` from zeabur-migration): `BOT_TOKEN`, `WEBHOOK_SECRET`,
+`GOOGLE_TOKEN_JSON` (same authorized-user JSON as on Zeabur), `ALLOWED_USER_IDS`, optional `MORNING_BRIEF_CHAT_ID`.
+Set `BOT_USERNAME` in `wrangler.jsonc`.
+
+### Cutover
+1. thebooleanjulian-db: `apply.mjs`, then `provision.mjs supercal` (prints the Hyperdrive id).
+2. Put the id in `wrangler.jsonc`, uncomment `hyperdrive` (and `routes` if a hostname is wanted), push the secrets.
+3. `npx wrangler deploy`, check `/healthz`.
+4. `setWebhook` to `<worker url>/webhook` with `secret_token=<WEBHOOK_SECRET>` and suspend the Zeabur service at once
+   (a polling bot gets 409s once a webhook is set). Then add the repo to `thebooleanjulian-bot-core/deploy/workers-fleet.json`.
+5. Rollback: `deleteWebhook`, resume the Zeabur service.
