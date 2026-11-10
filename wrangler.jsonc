@@ -1,7 +1,7 @@
 {
   // Supercalifragilisticex on Cloudflare Workers (webhook + Cron Trigger + Supabase via Hyperdrive). Replaces bot.py on Zeabur.
-  // Data: schema supercal in the shared Supabase project (TheBooleanJulian/thebooleanjulian-db). The Hyperdrive config
-  // "supercal-db" logs in as supercal_app, which can only touch that schema.
+  // Data: schema supercalifragilisticex in the shared Supabase project (TheBooleanJulian/thebooleanjulian-db). The Hyperdrive config
+  // "supercalifragilisticex-db" logs in as supercalifragilisticex_app, which can only touch that schema.
   // Model calls: thebooleanjulian-llm service binding (use cases event-extract / event-extract-vision). No provider keys here.
   // Secrets: BOT_TOKEN, WEBHOOK_SECRET, GOOGLE_TOKEN_JSON, ALLOWED_USER_IDS (and optionally MORNING_BRIEF_CHAT_ID).
   // Cutover (see README "Cutover"): fill in the Hyperdrive id and uncomment `hyperdrive` + `routes`, push secrets, deploy,
@@ -20,7 +20,7 @@
     "BOT_USERNAME": ""
   },
   "services": [{ "binding": "LLM", "service": "thebooleanjulian-llm" }],
-  // "hyperdrive": [{ "binding": "HYPERDRIVE", "id": "<from provision.mjs supercal>" }],
+  // "hyperdrive": [{ "binding": "HYPERDRIVE", "id": "<from provision.mjs supercalifragilisticex>" }],
   "triggers": { "crons": ["0 23 * * *"] }, // 07:00 SGT morning brief
   "assets": {
     "directory": "./public",
