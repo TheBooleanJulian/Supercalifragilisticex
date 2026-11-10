@@ -6,7 +6,7 @@
 //
 // Send text or a picture of an invite/flyer: the model extracts events through thebooleanjulian-llm
 // (use cases event-extract / event-extract-vision), you confirm or edit each, and it is added to Google Calendar.
-// Pending events and the "which field am I editing" state live in Supabase (schema supercal, via Hyperdrive),
+// Pending events and the "which field am I editing" state live in Supabase (schema supercalifragilisticex, via Hyperdrive),
 // because a Worker keeps nothing in memory between updates.
 
 import { log, api, verifyWebhook, parseCommand, healthz, statusPage, serveBrand } from 'thebooleanjulian-bot-core';
@@ -45,18 +45,18 @@ async function fileDataUrl(env, fileId, mime = 'image/jpeg') {
 // ── storage ────────────────────────────────────────────────────────────────
 const q = (env, fn) => withDb(env, null, fn);
 const store = {
-  put: (env, eid, chatId, event) => q(env, (sql) => sql`insert into supercal.pending (eid, chat_id, event) values (${eid}, ${String(chatId)}, ${JSON.stringify(event)}::jsonb)`),
-  get: async (env, eid, chatId) => (await q(env, (sql) => sql`select event from supercal.pending where eid = ${eid} and chat_id = ${String(chatId)}`))[0]?.event ?? null,
-  set: (env, eid, event) => q(env, (sql) => sql`update supercal.pending set event = ${JSON.stringify(event)}::jsonb where eid = ${eid}`),
-  take: async (env, eid, chatId) => (await q(env, (sql) => sql`delete from supercal.pending where eid = ${eid} and chat_id = ${String(chatId)} returning event`))[0]?.event ?? null,
+  put: (env, eid, chatId, event) => q(env, (sql) => sql`insert into supercalifragilisticex.pending (eid, chat_id, event) values (${eid}, ${String(chatId)}, ${JSON.stringify(event)}::jsonb)`),
+  get: async (env, eid, chatId) => (await q(env, (sql) => sql`select event from supercalifragilisticex.pending where eid = ${eid} and chat_id = ${String(chatId)}`))[0]?.event ?? null,
+  set: (env, eid, event) => q(env, (sql) => sql`update supercalifragilisticex.pending set event = ${JSON.stringify(event)}::jsonb where eid = ${eid}`),
+  take: async (env, eid, chatId) => (await q(env, (sql) => sql`delete from supercalifragilisticex.pending where eid = ${eid} and chat_id = ${String(chatId)} returning event`))[0]?.event ?? null,
   startEdit: (env, chatId, eid, field, messageId) => q(env, (sql) => sql`
-    insert into supercal.editing (chat_id, eid, field, message_id) values (${String(chatId)}, ${eid}, ${field}, ${String(messageId)})
+    insert into supercalifragilisticex.editing (chat_id, eid, field, message_id) values (${String(chatId)}, ${eid}, ${field}, ${String(messageId)})
     on conflict (chat_id) do update set eid = excluded.eid, field = excluded.field, message_id = excluded.message_id, updated_at = now()`),
-  editing: async (env, chatId) => (await q(env, (sql) => sql`select eid, field, message_id from supercal.editing where chat_id = ${String(chatId)}`))[0] ?? null,
-  endEdit: (env, chatId) => q(env, (sql) => sql`delete from supercal.editing where chat_id = ${String(chatId)}`),
+  editing: async (env, chatId) => (await q(env, (sql) => sql`select eid, field, message_id from supercalifragilisticex.editing where chat_id = ${String(chatId)}`))[0] ?? null,
+  endEdit: (env, chatId) => q(env, (sql) => sql`delete from supercalifragilisticex.editing where chat_id = ${String(chatId)}`),
   prune: (env) => q(env, async (sql) => {
-    await sql`delete from supercal.pending where created_at < now() - ${PENDING_TTL_DAYS} * interval '1 day'`;
-    await sql`delete from supercal.editing where updated_at < now() - interval '1 day'`;
+    await sql`delete from supercalifragilisticex.pending where created_at < now() - ${PENDING_TTL_DAYS} * interval '1 day'`;
+    await sql`delete from supercalifragilisticex.editing where updated_at < now() - interval '1 day'`;
   })
 };
 

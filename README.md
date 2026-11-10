@@ -106,7 +106,7 @@ This project is dual licensed.
 
 `worker.js` replaces `bot.py` (Python, polling, Zeabur). Webhook + one daily Cron Trigger (07:00 SGT morning brief),
 Google Calendar over REST, model calls through `thebooleanjulian-llm` (use cases `event-extract` and
-`event-extract-vision`; no provider keys in this repo any more), pending events in Supabase schema `supercal`.
+`event-extract-vision`; no provider keys in this repo any more), pending events in Supabase schema `supercalifragilisticex`.
 `npm test` runs the unit and webhook-flow tests. The Python files stay until the cutover is confirmed, for rollback.
 
 Secrets (`wrangler secret put`, or `push_secrets.py` from zeabur-migration): `BOT_TOKEN`, `WEBHOOK_SECRET`,
@@ -114,7 +114,7 @@ Secrets (`wrangler secret put`, or `push_secrets.py` from zeabur-migration): `BO
 Set `BOT_USERNAME` in `wrangler.jsonc`.
 
 ### Cutover
-1. thebooleanjulian-db: `apply.mjs`, then `provision.mjs supercal` (prints the Hyperdrive id).
+1. thebooleanjulian-db: `apply.mjs`, then `provision.mjs supercalifragilisticex` (prints the Hyperdrive id).
 2. Put the id in `wrangler.jsonc`, uncomment `hyperdrive` (and `routes` if a hostname is wanted), push the secrets.
 3. `npx wrangler deploy`, check `/healthz`.
 4. `setWebhook` to `<worker url>/webhook` with `secret_token=<WEBHOOK_SECRET>` and suspend the Zeabur service at once

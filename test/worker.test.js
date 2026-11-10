@@ -8,13 +8,13 @@ function fakeSql() {
   const pending = new Map(), editing = new Map();
   const sql = async (strings, ...v) => {
     const q = strings.join('?').replace(/\s+/g, ' ').trim().toLowerCase();
-    if (q.startsWith('insert into supercal.pending')) { pending.set(v[0], { chat_id: v[1], event: JSON.parse(v[2]) }); return []; }
-    if (q.startsWith('select event from supercal.pending')) { const p = pending.get(v[0]); return p && p.chat_id === v[1] ? [{ event: p.event }] : []; }
-    if (q.startsWith('update supercal.pending')) { pending.get(v[1]).event = JSON.parse(v[0]); return []; }
-    if (q.startsWith('delete from supercal.pending where eid')) { const p = pending.get(v[0]); if (p && p.chat_id === v[1]) { pending.delete(v[0]); return [{ event: p.event }]; } return []; }
-    if (q.startsWith('insert into supercal.editing')) { editing.set(v[0], { eid: v[1], field: v[2], message_id: v[3] }); return []; }
+    if (q.startsWith('insert into supercalifragilisticex.pending')) { pending.set(v[0], { chat_id: v[1], event: JSON.parse(v[2]) }); return []; }
+    if (q.startsWith('select event from supercalifragilisticex.pending')) { const p = pending.get(v[0]); return p && p.chat_id === v[1] ? [{ event: p.event }] : []; }
+    if (q.startsWith('update supercalifragilisticex.pending')) { pending.get(v[1]).event = JSON.parse(v[0]); return []; }
+    if (q.startsWith('delete from supercalifragilisticex.pending where eid')) { const p = pending.get(v[0]); if (p && p.chat_id === v[1]) { pending.delete(v[0]); return [{ event: p.event }]; } return []; }
+    if (q.startsWith('insert into supercalifragilisticex.editing')) { editing.set(v[0], { eid: v[1], field: v[2], message_id: v[3] }); return []; }
     if (q.startsWith('select eid, field')) return editing.has(v[0]) ? [editing.get(v[0])] : [];
-    if (q.startsWith('delete from supercal.editing where chat_id')) { editing.delete(v[0]); return []; }
+    if (q.startsWith('delete from supercalifragilisticex.editing where chat_id')) { editing.delete(v[0]); return []; }
     if (q.startsWith('select 1')) return [{}];
     throw new Error(`unexpected query: ${q}`);
   };
