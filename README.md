@@ -36,7 +36,7 @@ The Telegram bot is being incrementally refactored to call the new backend's HTT
 | Bot framework | python-telegram-bot |
 | Backend API | FastAPI + Uvicorn |
 | Database | PostgreSQL (SQLAlchemy ORM, Alembic migrations) |
-| Extraction | Google Gemini (`google-genai`) with Anthropic Claude fallback |
+| Extraction | TBJ LLM gateway (`thebooleanjulian-llm`): Gemini with Claude fallback, keys held by the gateway |
 | Calendar | Google Calendar API (OAuth via `google-auth-oauthlib`) |
 | Deployment | Zeabur (`zbpack.json`) |
 
@@ -52,7 +52,7 @@ _Screenshots coming soon._
 python -m venv venv
 source venv/bin/activate
 pip install -r requirements.txt
-cp .env.example .env   # fill in TELEGRAM_BOT_TOKEN, GEMINI_API_KEY, ANTHROPIC_API_KEY, etc.
+cp .env.example .env   # fill in TELEGRAM_BOT_TOKEN, LLM_GATEWAY_KEY, etc.
 python auth_setup.py   # one-time Google Calendar OAuth, writes token.json
 python bot.py
 ```
